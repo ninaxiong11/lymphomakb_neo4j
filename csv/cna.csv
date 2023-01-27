@@ -1,0 +1,3 @@
+variant_id,source,build,gene,copies,gain_or_loss,chromosome,genomic_start,genomic_end,cytogenetic_loc
+6115,clinvar,GRCh38,SERPINA7,2,gain,X,106032435,106038727,Xq22.2
+8915,clinvar,GRCh38,SNCA,3,gain,4,88504598,90127832,4q22.1
