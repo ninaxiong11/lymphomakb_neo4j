@@ -7,58 +7,58 @@ args = parser.parse_args()
 
 def get_mut_info(change, type):
     if type == "nt":
-        match = re.match("(.+)\.(\d+)(.+)>(.+)", change)
+        match = re.match("c\.(.+)(\w)>(\w)", change)
         if not match:
             return None
-        match = match.groups()
-        pos = match[1]
-        ref = match[2]
-        alt = match[3]
+        pos = match.group(1)
+        ref = match.group(2)
+        alt = match.group(3)
     elif type == "protein":
-        match = re.match("(.+)\.(\D+)(\d+)(\D+)", change)
+        match = re.match("p\.(\D+)(\d+)(\D+)", change)
         if not match:
             return None
-        match = match.groups()
-        pos = match[2]
-        ref = match[1]
-        alt = match[3]  
+        pos = match.group(2)
+        ref = match.group(1)
+        alt = match.group(3)
     return pos, ref, alt
 
 def add_snv(variant_id, name, gene, build, chr, genomic_pos):
-    match = re.match("(.+)\((.+)\)\:(.+).\((.+)\)", name)
-    if not match:
-        return
-    match = match.groups()
-    transcript = match[0]
-    gene = match[1]
-    if match[2].startswith("c"):
-        coding_change = match[2]
-        if not get_mut_info(coding_change, "nt"):
-            return
-        else:
-            coding_pos, ref_nt, alt_nt = get_mut_info(coding_change, "nt")
-    else:
-        return
-    protein_change = match[3]
-    if not get_mut_info(protein_change, "protein"):
-        return
-    else:
+    try:
+        match = re.match("(.+)\((.+)\)\:(.+).\((.+)\)", name)
+        protein_change = match.group(4)
         protein_pos, ref_aa, alt_aa = get_mut_info(protein_change, "protein")
+    except:
+        match = re.match("(.+)\((.+)\)\:(.+)", name)
+        protein_pos, ref_aa, alt_aa = "NA", "NA", "NA"
+        if not match:
+            return
+    transcript = match.group(1)
+    gene = match.group(2) 
+    coding_change = match.group(3)
+    try:
+        coding_pos, ref_nt, alt_nt = get_mut_info(coding_change, "nt")
+    except:
+        return
     result = [variant_id, "clinvar", build, gene, transcript, chr, genomic_pos, coding_pos, ref_nt, alt_nt, protein_pos, ref_aa, alt_aa]
     return ",".join(result) + "\n"
 
 def add_cna(variant_id, name, gene, build, chr, gain_or_loss):
-    match = re.match("(.+)\s(.+)\((.+)\)x(\d+)", name)
-    if not match:
-        return
+    try:
+        match = re.match("(.+)\s(.+)\((.+)\)x(\d+)", name)
+        copies = match.group(4)
+    except:
+        match = re.match("(.+)\s(.+)\((.+)\)", name)
+        copies = "NA"
+        if not match:
+            return
     cytogenetic_loc = match.group(2)
     genomic_loc = match.group(3)
-    copies = match.group(4)
-    match = re.match("(.+):(.+)-(.+)", genomic_loc)
-    if not match:
+    try:
+        match = re.match("(.+):(.+)-(.+)", genomic_loc)
+        genomic_start = match.group(2)
+        genomic_end = match.group(3)
+    except:
         return
-    genomic_start = match.group(2)
-    genomic_end = match.group(3)
     result = [variant_id, "clinvar", build, gene, copies, gain_or_loss, chr, genomic_start, genomic_end, cytogenetic_loc]
     return ",".join(result) + "\n"
 
@@ -103,6 +103,7 @@ def main():
         if type == "single nucleotide variant":
             snv = add_snv(str(variant_id), name, gene, build, chr, start)
             if snv:
+                print(name)
                 snv_outfile.write(snv)
                 add_statement(phenotypes, clinsig, disease_outfile, statement_outfile, involves_outfile)
                 variant_id += 1
